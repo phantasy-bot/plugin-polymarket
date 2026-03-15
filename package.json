@@ -1,44 +1,52 @@
 {
   "name": "@phantasy/plugin-polymarket",
   "version": "2.0.0",
-  "description": "Installable Polymarket prediction-market plugin surface for Phantasy",
+  "private": false,
+  "description": "Polymarket prediction-market integration plugin for Phantasy.",
   "license": "MIT",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     }
   },
   "files": [
     "dist",
     "README.md",
     "LICENSE",
-    "SECURITY.md"
+    "SECURITY.md",
+    "phantasy.plugin.json"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "sideEffects": false,
   "keywords": [
-    "ai",
-    "agent",
-    "plugin",
     "polymarket",
-    "markets"
+    "prediction-markets",
+    "trading",
+    "finance"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phantasy-bot/agent.git"
+    "url": "https://github.com/phantasy-bot/plugin-polymarket"
   },
-  "bugs": {
-    "url": "https://github.com/phantasy-bot/agent/issues"
+  "publishConfig": {
+    "access": "public"
   },
-  "homepage": "https://github.com/phantasy-bot/agent#readme",
-  "dependencies": {
+  "homepage": "https://github.com/phantasy-bot/plugin-polymarket",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
     "@phantasy/agent": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.2"
   },
   "phantasy": {
     "displayName": "Polymarket",
@@ -69,10 +77,10 @@
       "section": "business",
       "workspace": "business",
       "kind": "generic",
-      "advancedModule": "prediction-markets",
       "keywords": [
         "polymarket",
-        "prediction markets",
+        "prediction-markets",
+        "trading",
         "finance"
       ]
     },
@@ -82,9 +90,6 @@
         "enabled": {
           "type": "boolean",
           "default": true
-        },
-        "walletAddress": {
-          "type": "string"
         }
       }
     }

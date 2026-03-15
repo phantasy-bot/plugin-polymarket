@@ -1,0 +1,21 @@
+{
+  "name": "@phantasy/plugin-polymarket",
+  "version": "2.0.0",
+  "description": "Polymarket prediction-market integration plugin for Phantasy.",
+  "displayName": "Polymarket",
+  "workspace": "business",
+  "extensionKind": "integration",
+  "adminSurface": {
+    "tabId": "polymarket",
+    "label": "Polymarket",
+    "section": "business",
+    "workspace": "business",
+    "kind": "generic",
+    "keywords": [
+      "polymarket",
+      "prediction-markets",
+      "trading",
+      "finance"
+    ]
+  }
+}

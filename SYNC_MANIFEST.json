@@ -22,11 +22,29 @@
   ],
   "visibility": "public",
   "repoUrl": "https://github.com/phantasy-bot/plugin-polymarket",
-  "sourceOfTruth": "monorepo-wrapper",
-  "syncMode": "dist-package",
-  "phase": "wrapper-package",
+  "sourceOfTruth": "standalone-repo",
+  "syncMode": "source-extract",
+  "phase": "source-extracted",
   "repoExists": true,
   "npmPublished": false,
+  "sourceExtract": {
+    "files": [
+      {
+        "sourcePath": "src/plugins/polymarket/index.ts",
+        "targetPath": "src/index.ts"
+      },
+      {
+        "sourcePath": "src/plugins/polymarket/polymarket-plugin.ts",
+        "targetPath": "src/polymarket-plugin.ts"
+      }
+    ],
+    "replacements": [
+      {
+        "from": "import { BasePlugin, type PluginTool } from \"@/plugins/base-plugin\";",
+        "to": "import { BasePlugin, type PluginTool } from \"@phantasy/agent/plugins\";"
+      }
+    ]
+  },
   "phantasy": {
     "displayName": "Polymarket",
     "category": "markets",
@@ -73,5 +91,5 @@
       }
     }
   },
-  "exportedAt": "2026-03-15T17:58:06.222Z"
+  "exportedAt": "2026-03-15T18:31:23.507Z"
 }
