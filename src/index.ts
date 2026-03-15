@@ -1,27 +1,42 @@
-import { BasePlugin, PluginManifest, PluginTool } from "@phantasy/core";
+import { BasePlugin, type PluginTool } from "@phantasy/agent/plugins";
 
-export class UpolymarketPlugin extends BasePlugin {
-  readonly name = "polymarket";
-  readonly version = "1.0.0";
+export class PolymarketPlugin extends BasePlugin {
+  name = "polymarket";
+  version = "2.0.0";
+  description = "Polymarket prediction-market integration plugin for Phantasy.";
 
-  getManifest(): PluginManifest {
-    return {
-      name: this.name,
-      version: this.version,
-      description: "polymarket plugin for Phantasy",
-      author: "Phantasy",
-      license: "BUSL-1.1",
-      repository: "https://github.com/phantasy-bot/plugin-polymarket",
-    };
-  }
+  protected displayName = "Polymarket";
+  protected category = "markets";
+  protected tags = ["polymarket","prediction-markets","trading","finance"];
+  protected permissions = ["internet"];
+  protected workspace = "business" as const;
+  protected extensionKind = "integration" as const;
+  protected adminSurface =   {
+    "tabId": "polymarket",
+    "label": "Polymarket",
+    "section": "business",
+    "workspace": "business",
+    "kind": "generic",
+    "keywords": [
+      "polymarket",
+      "prediction-markets",
+      "trading",
+      "finance"
+    ]
+  } as const;
+  protected configSchema =   {
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  };
 
   getTools(): PluginTool[] {
     return [];
   }
-
-  async initialize(): Promise<void> {
-    console.log("[UpolymarketPlugin] Initialized");
-  }
 }
 
-export default UpolymarketPlugin;
+export default PolymarketPlugin;
