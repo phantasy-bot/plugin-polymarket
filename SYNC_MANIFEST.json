@@ -15,11 +15,16 @@
   "permissions": [
     "internet"
   ],
+  "dependencies": [
+    {
+      "plugin": "@phantasy/plugin-wallet"
+    }
+  ],
   "visibility": "public",
   "repoUrl": "https://github.com/phantasy-bot/plugin-polymarket",
-  "sourceOfTruth": "standalone-repo",
-  "syncMode": "scaffold-package",
-  "phase": "scaffold-only",
+  "sourceOfTruth": "monorepo-wrapper",
+  "syncMode": "dist-package",
+  "phase": "wrapper-package",
   "repoExists": true,
   "npmPublished": false,
   "phantasy": {
@@ -35,6 +40,11 @@
     "extensionKind": "integration",
     "permissions": [
       "internet"
+    ],
+    "pluginDependencies": [
+      {
+        "plugin": "@phantasy/plugin-wallet"
+      }
     ],
     "platforms": [
       "node"
@@ -63,5 +73,5 @@
       }
     }
   },
-  "exportedAt": "2026-03-15T15:23:37.111Z"
+  "exportedAt": "2026-03-15T17:58:06.222Z"
 }

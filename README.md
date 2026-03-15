@@ -1,24 +1,17 @@
-# Polymarket
+# @phantasy/plugin-polymarket
 
-Polymarket prediction-market integration plugin for Phantasy.
+Installable Polymarket prediction-market plugin surface for Phantasy.
 
-Package: `@phantasy/plugin-polymarket`
-Repo: https://github.com/phantasy-bot/plugin-polymarket
-Phase: `scaffold-only`
-
-## Status
-
-This repo is now the intended direct source-of-truth for the plugin, but it is still only a scaffold. The real implementation needs to be built here rather than kept in the main Phantasy monorepo.
-
-## Development
+## Install
 
 ```bash
-npm install
-npm run typecheck
-npm run build
+npm install @phantasy/plugin-polymarket
 ```
 
-## Installability
+## Use
 
-This scaffold is not published yet. Once the implementation is complete, publish it under the package name above and add it to the public Hub registry.
+```ts
+import { PolymarketPlugin } from "@phantasy/plugin-polymarket";
+```
 
+This package wraps the stable `@phantasy/agent/plugin-polymarket` subpath so Polymarket can ship as a first-class plugin package.
