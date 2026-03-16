@@ -36,12 +36,20 @@
       {
         "sourcePath": "src/plugins/polymarket/polymarket-plugin.ts",
         "targetPath": "src/polymarket-plugin.ts"
+      },
+      {
+        "sourcePath": "src/plugins/polymarket/polymarket-service.ts",
+        "targetPath": "src/polymarket-service.ts"
       }
     ],
     "replacements": [
       {
         "from": "import { BasePlugin, type PluginTool } from \"@/plugins/base-plugin\";",
         "to": "import { BasePlugin, type PluginTool } from \"@phantasy/agent/plugins\";"
+      },
+      {
+        "from": "\"@/plugin-runtime\"",
+        "to": "\"@phantasy/agent/plugin-runtime\""
       }
     ]
   },
@@ -91,5 +99,5 @@
       }
     }
   },
-  "exportedAt": "2026-03-15T18:31:23.507Z"
+  "exportedAt": "2026-03-16T02:20:40.120Z"
 }
