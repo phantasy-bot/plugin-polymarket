@@ -1,0 +1,103 @@
+{
+  "slug": "plugin-polymarket",
+  "packageName": "@phantasy/plugin-polymarket",
+  "displayName": "Polymarket",
+  "description": "Polymarket prediction-market integration plugin for Phantasy.",
+  "workspace": "business",
+  "extensionKind": "integration",
+  "category": "markets",
+  "tags": [
+    "polymarket",
+    "prediction-markets",
+    "trading",
+    "finance"
+  ],
+  "permissions": [
+    "internet"
+  ],
+  "dependencies": [
+    {
+      "plugin": "@phantasy/plugin-wallet"
+    }
+  ],
+  "visibility": "public",
+  "repoUrl": "https://github.com/phantasy-bot/plugin-polymarket",
+  "sourceOfTruth": "standalone-repo",
+  "syncMode": "source-extract",
+  "phase": "source-extracted",
+  "repoExists": true,
+  "npmPublished": false,
+  "sourceExtract": {
+    "files": [
+      {
+        "sourcePath": "src/plugins/polymarket/index.ts",
+        "targetPath": "src/index.ts"
+      },
+      {
+        "sourcePath": "src/plugins/polymarket/polymarket-plugin.ts",
+        "targetPath": "src/polymarket-plugin.ts"
+      },
+      {
+        "sourcePath": "src/plugins/polymarket/polymarket-service.ts",
+        "targetPath": "src/polymarket-service.ts"
+      }
+    ],
+    "replacements": [
+      {
+        "from": "import { BasePlugin, type PluginTool } from \"@/plugins/base-plugin\";",
+        "to": "import { BasePlugin, type PluginTool } from \"@phantasy/agent/plugins\";"
+      },
+      {
+        "from": "\"@/plugin-runtime\"",
+        "to": "\"@phantasy/agent/plugin-runtime\""
+      }
+    ]
+  },
+  "phantasy": {
+    "displayName": "Polymarket",
+    "category": "markets",
+    "tags": [
+      "polymarket",
+      "prediction-markets",
+      "trading",
+      "finance"
+    ],
+    "workspace": "business",
+    "extensionKind": "integration",
+    "permissions": [
+      "internet"
+    ],
+    "pluginDependencies": [
+      {
+        "plugin": "@phantasy/plugin-wallet"
+      }
+    ],
+    "platforms": [
+      "node"
+    ],
+    "productionReady": false,
+    "adminSurface": {
+      "tabId": "polymarket",
+      "label": "Polymarket",
+      "section": "business",
+      "workspace": "business",
+      "kind": "generic",
+      "keywords": [
+        "polymarket",
+        "prediction-markets",
+        "trading",
+        "finance"
+      ]
+    },
+    "configSchema": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "exportedAt": "2026-03-21T22:09:30.427Z"
+}
