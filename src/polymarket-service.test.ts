@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
+import { resolveAllowTrading } from "./config-resolve.js";
 import { PolymarketService } from "./polymarket-service.js";
 
 describe("PolymarketService", () => {
@@ -49,5 +50,14 @@ describe("PolymarketService", () => {
         size: 1,
       }),
     ).rejects.toThrow(/Trading disabled/);
+  });
+});
+
+describe("resolveAllowTrading", () => {
+  it("lets plugin UI config override env", () => {
+    expect(resolveAllowTrading(true, "false")).toBe(true);
+    expect(resolveAllowTrading(false, "true")).toBe(false);
+    expect(resolveAllowTrading(undefined, "true")).toBe(true);
+    expect(resolveAllowTrading(undefined, undefined)).toBe(false);
   });
 });

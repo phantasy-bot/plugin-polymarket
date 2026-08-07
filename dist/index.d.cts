@@ -17,7 +17,7 @@ declare class PolymarketPlugin extends BasePlugin {
         readonly workspace: "business";
         readonly kind: "generic";
         readonly advancedModule: "prediction-markets";
-        readonly keywords: readonly ["polymarket", "prediction markets", "finance"];
+        readonly keywords: readonly ["polymarket", "prediction markets", "finance", "allow trading"];
     };
     protected configSchema: {
         type: string;
@@ -25,35 +25,52 @@ declare class PolymarketPlugin extends BasePlugin {
             enabled: {
                 type: string;
                 default: boolean;
-            };
-            gammaBaseUrl: {
-                type: string;
-                default: string;
-            };
-            clobBaseUrl: {
-                type: string;
-                default: string;
-            };
-            privateKey: {
-                type: string;
-            };
-            funderAddress: {
-                type: string;
-            };
-            chainId: {
-                type: string;
-                default: number;
+                title: string;
+                description: string;
             };
             allowTrading: {
                 type: string;
                 default: boolean;
+                title: string;
+                description: string;
+            };
+            privateKey: {
+                type: string;
+                title: string;
+                description: string;
+                format: string;
+            };
+            funderAddress: {
+                type: string;
+                title: string;
+                description: string;
+            };
+            chainId: {
+                type: string;
+                default: number;
+                title: string;
+                description: string;
+            };
+            gammaBaseUrl: {
+                type: string;
+                default: string;
+                title: string;
+                description: string;
+            };
+            clobBaseUrl: {
+                type: string;
+                default: string;
+                title: string;
+                description: string;
             };
         };
     };
     private service;
     private resolveServiceConfig;
     private getService;
+    private refreshService;
     onInit(agentConfig: Parameters<BasePlugin["onInit"]>[0], config?: Parameters<BasePlugin["onInit"]>[1]): Promise<void>;
+    onConfigUpdated(newConfig: Parameters<BasePlugin["onConfigUpdated"]>[0]): Promise<void>;
     getTools(): PluginTool[];
     handleCustomEndpoint(request: Request, path: string): Promise<Response | null>;
 }

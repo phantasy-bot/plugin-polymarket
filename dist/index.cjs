@@ -30,6 +30,14 @@ module.exports = __toCommonJS(index_exports);
 var import_plugins = require("@phantasy/agent/plugins");
 var import_plugin_runtime = require("@phantasy/agent/plugin-runtime");
 
+// src/config-resolve.ts
+function resolveAllowTrading(configValue, envValue) {
+  if (typeof configValue === "boolean") return configValue;
+  if (configValue === "true" || configValue === "1") return true;
+  if (configValue === "false" || configValue === "0") return false;
+  return envValue === "true" || envValue === "1";
+}
+
 // src/polymarket-service.ts
 var log = {
   debug: (..._args) => void 0,
@@ -187,7 +195,7 @@ var PolymarketService = class {
   async placeOrder(_params) {
     if (!this.config.allowTrading || !this.config.privateKey?.trim()) {
       throw new Error(
-        "Trading disabled. Set allowTrading=true and privateKey in plugin config to enable CLOB orders."
+        "Trading disabled. Turn on \u201CAllow trading\u201D and set a trading private key in Admin \u2192 Plugins \u2192 Polymarket (or Business \u2192 Polymarket), then Save."
       );
     }
     throw new Error(
@@ -211,13 +219,13 @@ function num(value) {
 }
 function bool(value, fallback = false) {
   if (typeof value === "boolean") return value;
-  if (value === "true") return true;
-  if (value === "false") return false;
+  if (value === "true" || value === "1") return true;
+  if (value === "false" || value === "0") return false;
   return fallback;
 }
 var PolymarketPlugin = class extends import_plugins.BasePlugin {
   name = "polymarket";
-  version = "0.1.0-beta";
+  version = "0.1.1-beta";
   description = "Polymarket prediction markets: search, prices, order books, and gated trading.";
   displayName = "Polymarket";
   category = "markets";
@@ -248,24 +256,52 @@ var PolymarketPlugin = class extends import_plugins.BasePlugin {
     workspace: "business",
     kind: "generic",
     advancedModule: "prediction-markets",
-    keywords: ["polymarket", "prediction markets", "finance"]
+    keywords: ["polymarket", "prediction markets", "finance", "allow trading"]
   };
   configSchema = {
     type: "object",
     properties: {
-      enabled: { type: "boolean", default: true },
+      enabled: {
+        type: "boolean",
+        default: true,
+        title: "Enabled",
+        description: "Load Polymarket tools and admin surface."
+      },
+      allowTrading: {
+        type: "boolean",
+        default: false,
+        title: "Allow trading",
+        description: "When on, order tools may place CLOB trades (requires wallet key below). Toggle anytime in this plugin form \u2014 no restart required. Leave off for research-only agents."
+      },
+      privateKey: {
+        type: "string",
+        title: "Trading private key",
+        description: "Optional Polygon wallet private key for CLOB orders. Stored in plugin config (Admin \u2192 Plugins \u2192 Polymarket).",
+        format: "password"
+      },
+      funderAddress: {
+        type: "string",
+        title: "Funder address",
+        description: "Optional funder / proxy wallet address for CLOB trading."
+      },
+      chainId: {
+        type: "number",
+        default: 137,
+        title: "Chain ID",
+        description: "Polygon mainnet is 137."
+      },
       gammaBaseUrl: {
         type: "string",
-        default: "https://gamma-api.polymarket.com"
+        default: "https://gamma-api.polymarket.com",
+        title: "Gamma API URL",
+        description: "Public market discovery API base URL."
       },
       clobBaseUrl: {
         type: "string",
-        default: "https://clob.polymarket.com"
-      },
-      privateKey: { type: "string" },
-      funderAddress: { type: "string" },
-      chainId: { type: "number", default: 137 },
-      allowTrading: { type: "boolean", default: false }
+        default: "https://clob.polymarket.com",
+        title: "CLOB API URL",
+        description: "Order book / trading API base URL."
+      }
     }
   };
   service = null;
@@ -277,7 +313,10 @@ var PolymarketPlugin = class extends import_plugins.BasePlugin {
       privateKey: str(cfg.privateKey) || process.env.POLYMARKET_PRIVATE_KEY,
       funderAddress: str(cfg.funderAddress) || process.env.POLYMARKET_FUNDER_ADDRESS,
       chainId: num(cfg.chainId) ?? Number(process.env.POLYMARKET_CHAIN_ID || 137),
-      allowTrading: bool(cfg.allowTrading, false) || process.env.POLYMARKET_ALLOW_TRADING === "true"
+      allowTrading: resolveAllowTrading(
+        cfg.allowTrading,
+        process.env.POLYMARKET_ALLOW_TRADING
+      )
     };
   }
   getService() {
@@ -286,10 +325,18 @@ var PolymarketPlugin = class extends import_plugins.BasePlugin {
     }
     return this.service;
   }
+  refreshService() {
+    this.service = new PolymarketService(this.resolveServiceConfig());
+  }
   async onInit(agentConfig, config) {
     await super.onInit(agentConfig, config);
-    this.service = new PolymarketService(this.resolveServiceConfig());
-    log2.info("Polymarket plugin initialized", this.service.getStatus());
+    this.refreshService();
+    log2.info("Polymarket plugin initialized", this.service?.getStatus());
+  }
+  async onConfigUpdated(newConfig) {
+    await super.onConfigUpdated(newConfig);
+    this.refreshService();
+    log2.info("Polymarket config updated from admin UI", this.service?.getStatus());
   }
   getTools() {
     return [

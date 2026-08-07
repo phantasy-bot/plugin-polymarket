@@ -5,8 +5,11 @@ import {
 } from "@phantasy/agent/plugins";
 import { createPluginModuleLogger } from "@phantasy/agent/plugin-runtime";
 
+import { resolveAllowTrading } from "./config-resolve.js";
 import { PolymarketService } from "./polymarket-service.js";
 import type { PolymarketServiceConfig } from "./polymarket-types.js";
+
+export { resolveAllowTrading } from "./config-resolve.js";
 
 const log = createPluginModuleLogger("PolymarketPlugin");
 
@@ -25,14 +28,14 @@ function num(value: unknown): number | undefined {
 
 function bool(value: unknown, fallback = false): boolean {
   if (typeof value === "boolean") return value;
-  if (value === "true") return true;
-  if (value === "false") return false;
+  if (value === "true" || value === "1") return true;
+  if (value === "false" || value === "0") return false;
   return fallback;
 }
 
 export class PolymarketPlugin extends BasePlugin {
   name = "polymarket";
-  version = "0.1.0-beta";
+  version = "0.1.1-beta";
   description =
     "Polymarket prediction markets: search, prices, order books, and gated trading.";
 
@@ -65,24 +68,54 @@ export class PolymarketPlugin extends BasePlugin {
     workspace: "business",
     kind: "generic",
     advancedModule: "prediction-markets",
-    keywords: ["polymarket", "prediction markets", "finance"],
+    keywords: ["polymarket", "prediction markets", "finance", "allow trading"],
   } as const;
   protected configSchema = {
     type: "object",
     properties: {
-      enabled: { type: "boolean", default: true },
+      enabled: {
+        type: "boolean",
+        default: true,
+        title: "Enabled",
+        description: "Load Polymarket tools and admin surface.",
+      },
+      allowTrading: {
+        type: "boolean",
+        default: false,
+        title: "Allow trading",
+        description:
+          "When on, order tools may place CLOB trades (requires wallet key below). Toggle anytime in this plugin form — no restart required. Leave off for research-only agents.",
+      },
+      privateKey: {
+        type: "string",
+        title: "Trading private key",
+        description:
+          "Optional Polygon wallet private key for CLOB orders. Stored in plugin config (Admin → Plugins → Polymarket).",
+        format: "password",
+      },
+      funderAddress: {
+        type: "string",
+        title: "Funder address",
+        description: "Optional funder / proxy wallet address for CLOB trading.",
+      },
+      chainId: {
+        type: "number",
+        default: 137,
+        title: "Chain ID",
+        description: "Polygon mainnet is 137.",
+      },
       gammaBaseUrl: {
         type: "string",
         default: "https://gamma-api.polymarket.com",
+        title: "Gamma API URL",
+        description: "Public market discovery API base URL.",
       },
       clobBaseUrl: {
         type: "string",
         default: "https://clob.polymarket.com",
+        title: "CLOB API URL",
+        description: "Order book / trading API base URL.",
       },
-      privateKey: { type: "string" },
-      funderAddress: { type: "string" },
-      chainId: { type: "number", default: 137 },
-      allowTrading: { type: "boolean", default: false },
     },
   };
 
@@ -96,9 +129,10 @@ export class PolymarketPlugin extends BasePlugin {
       privateKey: str(cfg.privateKey) || process.env.POLYMARKET_PRIVATE_KEY,
       funderAddress: str(cfg.funderAddress) || process.env.POLYMARKET_FUNDER_ADDRESS,
       chainId: num(cfg.chainId) ?? Number(process.env.POLYMARKET_CHAIN_ID || 137),
-      allowTrading:
-        bool(cfg.allowTrading, false) ||
-        process.env.POLYMARKET_ALLOW_TRADING === "true",
+      allowTrading: resolveAllowTrading(
+        cfg.allowTrading,
+        process.env.POLYMARKET_ALLOW_TRADING,
+      ),
     };
   }
 
@@ -109,13 +143,25 @@ export class PolymarketPlugin extends BasePlugin {
     return this.service;
   }
 
+  private refreshService(): void {
+    this.service = new PolymarketService(this.resolveServiceConfig());
+  }
+
   override async onInit(
     agentConfig: Parameters<BasePlugin["onInit"]>[0],
     config?: Parameters<BasePlugin["onInit"]>[1],
   ): Promise<void> {
     await super.onInit(agentConfig, config);
-    this.service = new PolymarketService(this.resolveServiceConfig());
-    log.info("Polymarket plugin initialized", this.service.getStatus());
+    this.refreshService();
+    log.info("Polymarket plugin initialized", this.service?.getStatus());
+  }
+
+  override async onConfigUpdated(
+    newConfig: Parameters<BasePlugin["onConfigUpdated"]>[0],
+  ): Promise<void> {
+    await super.onConfigUpdated(newConfig);
+    this.refreshService();
+    log.info("Polymarket config updated from admin UI", this.service?.getStatus());
   }
 
   getTools(): PluginTool[] {

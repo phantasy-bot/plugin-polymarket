@@ -202,7 +202,7 @@ export class PolymarketService {
   }): Promise<never> {
     if (!this.config.allowTrading || !this.config.privateKey?.trim()) {
       throw new Error(
-        "Trading disabled. Set allowTrading=true and privateKey in plugin config to enable CLOB orders.",
+        "Trading disabled. Turn on “Allow trading” and set a trading private key in Admin → Plugins → Polymarket (or Business → Polymarket), then Save.",
       );
     }
     throw new Error(
