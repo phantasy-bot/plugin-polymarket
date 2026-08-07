@@ -35,9 +35,9 @@ function bool(value: unknown, fallback = false): boolean {
 
 export class PolymarketPlugin extends BasePlugin {
   name = "polymarket";
-  version = "0.1.1-beta";
+  version = "0.1.2-beta";
   description =
-    "Polymarket prediction markets: search, prices, order books, and gated trading.";
+    "Polymarket prediction markets: public search, prices, and order books (research-first).";
 
   protected displayName = "Polymarket";
   protected category = "markets";
@@ -82,15 +82,15 @@ export class PolymarketPlugin extends BasePlugin {
       allowTrading: {
         type: "boolean",
         default: false,
-        title: "Allow trading",
+        title: "Allow trading (reserved)",
         description:
-          "When on, order tools may place CLOB trades (requires wallet key below). Toggle anytime in this plugin form — no restart required. Leave off for research-only agents.",
+          "Reserved for future CLOB order placement. This build is research-only: public market tools work; signed orders are not wired yet. Leave off.",
       },
       privateKey: {
         type: "string",
-        title: "Trading private key",
+        title: "Trading private key (reserved)",
         description:
-          "Optional Polygon wallet private key for CLOB orders. Stored in plugin config (Admin → Plugins → Polymarket).",
+          "Optional Polygon wallet private key reserved for a future signed CLOB client. Not required for research tools.",
         format: "password",
       },
       funderAddress: {
@@ -130,7 +130,8 @@ export class PolymarketPlugin extends BasePlugin {
       funderAddress: str(cfg.funderAddress) || process.env.POLYMARKET_FUNDER_ADDRESS,
       chainId: num(cfg.chainId) ?? Number(process.env.POLYMARKET_CHAIN_ID || 137),
       allowTrading: resolveAllowTrading(
-        cfg.allowTrading,
+        cfg,
+        "allowTrading",
         process.env.POLYMARKET_ALLOW_TRADING,
       ),
     };

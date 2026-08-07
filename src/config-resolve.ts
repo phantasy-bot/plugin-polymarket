@@ -1,13 +1,21 @@
 /**
- * Plugin UI config wins when the operator has set a value.
- * Env is only a bootstrap default for first-run installs.
+ * Resolve a boolean trading flag from plugin config.
+ *
+ * - If the key is present on the config object (including schema default false), that wins.
+ * - Env is bootstrap only when the key has never been set (first-run installs).
+ * - Missing / invalid values fail closed to false once the key exists.
  */
 export function resolveAllowTrading(
-  configValue: unknown,
+  config: Record<string, unknown>,
+  key: string,
   envValue: string | undefined,
 ): boolean {
-  if (typeof configValue === "boolean") return configValue;
-  if (configValue === "true" || configValue === "1") return true;
-  if (configValue === "false" || configValue === "0") return false;
+  if (Object.prototype.hasOwnProperty.call(config, key)) {
+    const value = config[key];
+    if (typeof value === "boolean") return value;
+    if (value === "true" || value === "1") return true;
+    if (value === "false" || value === "0") return false;
+    return false;
+  }
   return envValue === "true" || envValue === "1";
 }

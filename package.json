@@ -1,6 +1,6 @@
 {
   "name": "@phantasy/plugin-polymarket",
-  "version": "0.1.1-beta",
+  "version": "0.1.2-beta",
   "private": false,
   "description": "Polymarket prediction-market integration plugin for Phantasy.",
   "license": "MIT",
@@ -77,7 +77,7 @@
     "platforms": [
       "node"
     ],
-    "productionReady": true,
+    "productionReady": false,
     "adminSurface": {
       "tabId": "polymarket",
       "label": "Polymarket",

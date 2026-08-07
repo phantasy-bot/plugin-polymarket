@@ -54,10 +54,14 @@ describe("PolymarketService", () => {
 });
 
 describe("resolveAllowTrading", () => {
-  it("lets plugin UI config override env", () => {
-    expect(resolveAllowTrading(true, "false")).toBe(true);
-    expect(resolveAllowTrading(false, "true")).toBe(false);
-    expect(resolveAllowTrading(undefined, "true")).toBe(true);
-    expect(resolveAllowTrading(undefined, undefined)).toBe(false);
+  it("lets explicit plugin UI config override env", () => {
+    expect(resolveAllowTrading({ allowTrading: true }, "allowTrading", "false")).toBe(
+      true,
+    );
+    expect(resolveAllowTrading({ allowTrading: false }, "allowTrading", "true")).toBe(
+      false,
+    );
+    expect(resolveAllowTrading({}, "allowTrading", "true")).toBe(true);
+    expect(resolveAllowTrading({}, "allowTrading", undefined)).toBe(false);
   });
 });

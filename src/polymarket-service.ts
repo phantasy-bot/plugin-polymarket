@@ -206,7 +206,7 @@ export class PolymarketService {
       );
     }
     throw new Error(
-      "CLOB order placement is scaffolded but not wired to a signed client in this build. Use public market tools for research agents.",
+      "Polymarket is research-only in this build: CLOB order placement is not wired to a signed client. Use public market tools, or track a future release that ships signed trading.",
     );
   }
 }

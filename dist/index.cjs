@@ -31,10 +31,14 @@ var import_plugins = require("@phantasy/agent/plugins");
 var import_plugin_runtime = require("@phantasy/agent/plugin-runtime");
 
 // src/config-resolve.ts
-function resolveAllowTrading(configValue, envValue) {
-  if (typeof configValue === "boolean") return configValue;
-  if (configValue === "true" || configValue === "1") return true;
-  if (configValue === "false" || configValue === "0") return false;
+function resolveAllowTrading(config, key, envValue) {
+  if (Object.prototype.hasOwnProperty.call(config, key)) {
+    const value = config[key];
+    if (typeof value === "boolean") return value;
+    if (value === "true" || value === "1") return true;
+    if (value === "false" || value === "0") return false;
+    return false;
+  }
   return envValue === "true" || envValue === "1";
 }
 
@@ -199,7 +203,7 @@ var PolymarketService = class {
       );
     }
     throw new Error(
-      "CLOB order placement is scaffolded but not wired to a signed client in this build. Use public market tools for research agents."
+      "Polymarket is research-only in this build: CLOB order placement is not wired to a signed client. Use public market tools, or track a future release that ships signed trading."
     );
   }
 };
@@ -225,8 +229,8 @@ function bool(value, fallback = false) {
 }
 var PolymarketPlugin = class extends import_plugins.BasePlugin {
   name = "polymarket";
-  version = "0.1.1-beta";
-  description = "Polymarket prediction markets: search, prices, order books, and gated trading.";
+  version = "0.1.2-beta";
+  description = "Polymarket prediction markets: public search, prices, and order books (research-first).";
   displayName = "Polymarket";
   category = "markets";
   tags = ["polymarket", "prediction-markets", "trading", "finance"];
@@ -270,13 +274,13 @@ var PolymarketPlugin = class extends import_plugins.BasePlugin {
       allowTrading: {
         type: "boolean",
         default: false,
-        title: "Allow trading",
-        description: "When on, order tools may place CLOB trades (requires wallet key below). Toggle anytime in this plugin form \u2014 no restart required. Leave off for research-only agents."
+        title: "Allow trading (reserved)",
+        description: "Reserved for future CLOB order placement. This build is research-only: public market tools work; signed orders are not wired yet. Leave off."
       },
       privateKey: {
         type: "string",
-        title: "Trading private key",
-        description: "Optional Polygon wallet private key for CLOB orders. Stored in plugin config (Admin \u2192 Plugins \u2192 Polymarket).",
+        title: "Trading private key (reserved)",
+        description: "Optional Polygon wallet private key reserved for a future signed CLOB client. Not required for research tools.",
         format: "password"
       },
       funderAddress: {
@@ -314,7 +318,8 @@ var PolymarketPlugin = class extends import_plugins.BasePlugin {
       funderAddress: str(cfg.funderAddress) || process.env.POLYMARKET_FUNDER_ADDRESS,
       chainId: num(cfg.chainId) ?? Number(process.env.POLYMARKET_CHAIN_ID || 137),
       allowTrading: resolveAllowTrading(
-        cfg.allowTrading,
+        cfg,
+        "allowTrading",
         process.env.POLYMARKET_ALLOW_TRADING
       )
     };

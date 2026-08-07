@@ -1,6 +1,6 @@
 {
   "name": "@phantasy/plugin-polymarket",
-  "version": "0.1.1-beta",
+  "version": "0.1.2-beta",
   "description": "Polymarket prediction-market integration plugin for Phantasy.",
   "displayName": "Polymarket",
   "author": "Phantasy",
@@ -30,7 +30,7 @@
   "platforms": [
     "node"
   ],
-  "productionReady": true,
+  "productionReady": false,
   "adminSurface": {
     "tabId": "polymarket",
     "label": "Polymarket",
@@ -90,6 +90,7 @@
         "kind": "tool"
       }
     ],
-    "pluginDependencies": []
+    "pluginDependencies": [],
+    "productionReady": false
   }
 }
