@@ -1,0 +1,104 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "plugin-polymarket",
+  "version": "0.2.0-beta",
+  "description": "Polymarket prediction markets: public research tools and gated CLOB trading.",
+  "author": {
+    "name": "Phantasy"
+  },
+  "homepage": "https://github.com/phantasy-bot/plugin-polymarket",
+  "repository": "https://github.com/phantasy-bot/plugin-polymarket",
+  "license": "MIT",
+  "keywords": [
+    "polymarket",
+    "prediction-markets",
+    "trading",
+    "finance"
+  ],
+  "extensions": {
+    "bot.phantasy": {
+      "packageName": "@phantasy/plugin-polymarket",
+      "runtimeName": "polymarket",
+      "displayName": "Polymarket",
+      "main": "./dist/index.js",
+      "workspace": "business",
+      "extensionKind": "integration",
+      "category": "markets",
+      "tags": [
+        "polymarket",
+        "prediction-markets",
+        "trading",
+        "finance"
+      ],
+      "permissions": [
+        "internet"
+      ],
+      "platforms": [
+        "node"
+      ],
+      "productionReady": true,
+      "adminSurface": {
+        "tabId": "polymarket",
+        "label": "Polymarket",
+        "workspace": "business",
+        "kind": "generic",
+        "advancedModule": "prediction-markets",
+        "keywords": [
+          "polymarket",
+          "prediction markets",
+          "finance"
+        ]
+      },
+      "configSchema": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "title": "Enabled"
+          },
+          "allowTrading": {
+            "type": "boolean",
+            "default": false,
+            "title": "Allow trading",
+            "description": "When on, order tools may place CLOB trades. Toggle anytime in this plugin form — no restart required."
+          },
+          "privateKey": {
+            "type": "string",
+            "title": "Trading private key",
+            "format": "password"
+          },
+          "funderAddress": {
+            "type": "string",
+            "title": "Funder address"
+          },
+          "chainId": {
+            "type": "number",
+            "default": 137,
+            "title": "Chain ID"
+          },
+          "gammaBaseUrl": {
+            "type": "string",
+            "default": "https://gamma-api.polymarket.com",
+            "title": "Gamma API URL"
+          },
+          "clobBaseUrl": {
+            "type": "string",
+            "default": "https://clob.polymarket.com",
+            "title": "CLOB API URL"
+          }
+        }
+      },
+      "phantasy": {
+        "extensions": [
+          {
+            "path": "./dist/index.js",
+            "kind": "tool"
+          }
+        ],
+        "pluginDependencies": [],
+        "productionReady": false
+      }
+    }
+  }
+}
