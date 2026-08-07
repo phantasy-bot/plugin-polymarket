@@ -1,7 +1,7 @@
 {
   "name": "@phantasy/plugin-polymarket",
-  "version": "0.1.2-beta",
-  "description": "Polymarket prediction-market integration plugin for Phantasy.",
+  "version": "0.2.0-beta",
+  "description": "Polymarket prediction markets: public research tools and gated CLOB trading.",
   "displayName": "Polymarket",
   "author": "Phantasy",
   "homepage": "https://github.com/phantasy-bot/plugin-polymarket",
@@ -30,7 +30,7 @@
   "platforms": [
     "node"
   ],
-  "productionReady": false,
+  "productionReady": true,
   "adminSurface": {
     "tabId": "polymarket",
     "label": "Polymarket",

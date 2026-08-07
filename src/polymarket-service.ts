@@ -1,6 +1,6 @@
 /**
  * Polymarket market data via Gamma (public) + CLOB read endpoints.
- * Order placement stays gated behind allowTrading + private key (future CLOB client).
+ * Order placement uses @polymarket/clob-client-v2 when allowTrading + privateKey are set.
  */
 
 import type {
@@ -8,6 +8,12 @@ import type {
   PolymarketSearchParams,
   PolymarketServiceConfig,
 } from "./polymarket-types.js";
+import {
+  cancelClobOrder,
+  placeClobOrder,
+  type CancelOrderParams,
+  type PlaceOrderParams,
+} from "./polymarket-trading.js";
 
 const log = {
   debug: (..._args: unknown[]) => undefined,
@@ -192,21 +198,22 @@ export class PolymarketService {
   }
 
   /**
-   * Trading is intentionally not auto-enabled. Wire @polymarket/clob-client when ready.
+   * Place a signed CLOB limit order. Requires allowTrading + privateKey.
    */
-  async placeOrder(_params: {
-    tokenId: string;
-    side: "buy" | "sell";
-    price: number;
-    size: number;
-  }): Promise<never> {
-    if (!this.config.allowTrading || !this.config.privateKey?.trim()) {
-      throw new Error(
-        "Trading disabled. Turn on “Allow trading” and set a trading private key in Admin → Plugins → Polymarket (or Business → Polymarket), then Save.",
-      );
-    }
-    throw new Error(
-      "Polymarket is research-only in this build: CLOB order placement is not wired to a signed client. Use public market tools, or track a future release that ships signed trading.",
-    );
+  async placeOrder(params: PlaceOrderParams): Promise<unknown> {
+    log.info("Placing Polymarket CLOB order", {
+      tokenId: params.tokenId,
+      side: params.side,
+      price: params.price,
+      size: params.size,
+    });
+    return placeClobOrder(this.config, params);
+  }
+
+  /**
+   * Cancel a resting CLOB order by id. Requires allowTrading + privateKey.
+   */
+  async cancelOrder(params: CancelOrderParams): Promise<unknown> {
+    return cancelClobOrder(this.config, params);
   }
 }

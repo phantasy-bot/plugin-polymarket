@@ -109,8 +109,26 @@ interface PolymarketSearchParams {
 }
 
 /**
+ * Signed CLOB trading via @polymarket/clob-client-v2 + viem wallet.
+ */
+
+type PlaceOrderParams = {
+    tokenId: string;
+    side: "buy" | "sell";
+    price: number;
+    size: number;
+    /** Optional tick size override (default: fetch from CLOB or 0.01). */
+    tickSize?: string;
+    /** Optional GTD expiration unix seconds. */
+    expiration?: number;
+};
+type CancelOrderParams = {
+    orderId: string;
+};
+
+/**
  * Polymarket market data via Gamma (public) + CLOB read endpoints.
- * Order placement stays gated behind allowTrading + private key (future CLOB client).
+ * Order placement uses @polymarket/clob-client-v2 when allowTrading + privateKey are set.
  */
 
 declare class PolymarketService {
@@ -133,14 +151,13 @@ declare class PolymarketService {
     getMidpoint(tokenId: string): Promise<unknown>;
     getPrice(tokenId: string, side?: "buy" | "sell"): Promise<unknown>;
     /**
-     * Trading is intentionally not auto-enabled. Wire @polymarket/clob-client when ready.
+     * Place a signed CLOB limit order. Requires allowTrading + privateKey.
      */
-    placeOrder(_params: {
-        tokenId: string;
-        side: "buy" | "sell";
-        price: number;
-        size: number;
-    }): Promise<never>;
+    placeOrder(params: PlaceOrderParams): Promise<unknown>;
+    /**
+     * Cancel a resting CLOB order by id. Requires allowTrading + privateKey.
+     */
+    cancelOrder(params: CancelOrderParams): Promise<unknown>;
 }
 
 export { type PolymarketMarketSummary, PolymarketPlugin, type PolymarketSearchParams, PolymarketService, type PolymarketServiceConfig, PolymarketPlugin as default };

@@ -51,6 +51,21 @@ describe("PolymarketService", () => {
       }),
     ).rejects.toThrow(/Trading disabled/);
   });
+
+  it("refuses trading without private key", async () => {
+    const service = new PolymarketService({
+      allowTrading: true,
+      privateKey: "",
+    });
+    await expect(
+      service.placeOrder({
+        tokenId: "x",
+        side: "buy",
+        price: 0.5,
+        size: 1,
+      }),
+    ).rejects.toThrow(/private key/i);
+  });
 });
 
 describe("resolveAllowTrading", () => {

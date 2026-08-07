@@ -16,6 +16,108 @@ function resolveAllowTrading(config, key, envValue) {
   return envValue === "true" || envValue === "1";
 }
 
+// src/polymarket-trading.ts
+function normalizePrivateKey(key) {
+  const trimmed = key.trim();
+  if (!trimmed) {
+    throw new Error("privateKey is required for trading");
+  }
+  return trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`;
+}
+function assertTradingReady(config) {
+  if (!config.allowTrading) {
+    throw new Error(
+      "Trading disabled. Turn on \u201CAllow trading\u201D in Admin \u2192 Plugins \u2192 Polymarket, then Save."
+    );
+  }
+  if (!config.privateKey?.trim()) {
+    throw new Error(
+      "Trading private key missing. Set it in Admin \u2192 Plugins \u2192 Polymarket, then Save."
+    );
+  }
+}
+async function createAuthenticatedClobClient(config) {
+  assertTradingReady(config);
+  const [{ ClobClient, Chain, Side, OrderType }, { createWalletClient, http }, { privateKeyToAccount }] = await Promise.all([
+    import("@polymarket/clob-client-v2"),
+    import("viem"),
+    import("viem/accounts")
+  ]);
+  const host = (config.clobBaseUrl || "https://clob.polymarket.com").replace(
+    /\/$/,
+    ""
+  );
+  const chainId = config.chainId === 80002 ? Chain.AMOY : Chain.POLYGON;
+  const account = privateKeyToAccount(normalizePrivateKey(config.privateKey));
+  const walletClient = createWalletClient({
+    account,
+    transport: http()
+  });
+  const l1 = new ClobClient({
+    host,
+    chain: chainId,
+    signer: walletClient,
+    funderAddress: config.funderAddress,
+    throwOnError: true
+  });
+  const creds = await l1.createOrDeriveApiKey();
+  const client = new ClobClient({
+    host,
+    chain: chainId,
+    signer: walletClient,
+    creds,
+    funderAddress: config.funderAddress,
+    throwOnError: true
+  });
+  return { client, Side, OrderType };
+}
+async function placeClobOrder(config, params) {
+  assertTradingReady(config);
+  const tokenId = params.tokenId.trim();
+  if (!tokenId) throw new Error("tokenId is required");
+  if (!(params.price > 0 && params.price < 1)) {
+    throw new Error("price must be a probability between 0 and 1 (exclusive)");
+  }
+  if (!(params.size > 0)) {
+    throw new Error("size must be positive");
+  }
+  const { client, Side, OrderType } = await createAuthenticatedClobClient(config);
+  const side = params.side === "sell" ? Side.SELL : Side.BUY;
+  let tickSize = params.tickSize;
+  if (!tickSize) {
+    try {
+      tickSize = String(await client.getTickSize(tokenId));
+    } catch {
+      tickSize = "0.01";
+    }
+  }
+  let negRisk = false;
+  try {
+    negRisk = Boolean(await client.getNegRisk(tokenId));
+  } catch {
+    negRisk = false;
+  }
+  const response = await client.createAndPostOrder(
+    {
+      tokenID: tokenId,
+      price: params.price,
+      size: params.size,
+      side,
+      ...params.expiration ? { expiration: params.expiration } : {}
+    },
+    { tickSize, negRisk },
+    OrderType.GTC
+  );
+  return response;
+}
+async function cancelClobOrder(config, params) {
+  assertTradingReady(config);
+  const orderId = params.orderId.trim();
+  if (!orderId) throw new Error("orderId is required");
+  const { client } = await createAuthenticatedClobClient(config);
+  return client.cancelOrder({ orderID: orderId });
+}
+
 // src/polymarket-service.ts
 var log = {
   debug: (..._args) => void 0,
@@ -168,17 +270,22 @@ var PolymarketService = class {
     );
   }
   /**
-   * Trading is intentionally not auto-enabled. Wire @polymarket/clob-client when ready.
+   * Place a signed CLOB limit order. Requires allowTrading + privateKey.
    */
-  async placeOrder(_params) {
-    if (!this.config.allowTrading || !this.config.privateKey?.trim()) {
-      throw new Error(
-        "Trading disabled. Turn on \u201CAllow trading\u201D and set a trading private key in Admin \u2192 Plugins \u2192 Polymarket (or Business \u2192 Polymarket), then Save."
-      );
-    }
-    throw new Error(
-      "Polymarket is research-only in this build: CLOB order placement is not wired to a signed client. Use public market tools, or track a future release that ships signed trading."
-    );
+  async placeOrder(params) {
+    log.info("Placing Polymarket CLOB order", {
+      tokenId: params.tokenId,
+      side: params.side,
+      price: params.price,
+      size: params.size
+    });
+    return placeClobOrder(this.config, params);
+  }
+  /**
+   * Cancel a resting CLOB order by id. Requires allowTrading + privateKey.
+   */
+  async cancelOrder(params) {
+    return cancelClobOrder(this.config, params);
   }
 };
 
@@ -203,8 +310,8 @@ function bool(value, fallback = false) {
 }
 var PolymarketPlugin = class extends BasePlugin {
   name = "polymarket";
-  version = "0.1.2-beta";
-  description = "Polymarket prediction markets: public search, prices, and order books (research-first).";
+  version = "0.2.0-beta";
+  description = "Polymarket prediction markets: public search/prices/books plus gated CLOB order placement.";
   displayName = "Polymarket";
   category = "markets";
   tags = ["polymarket", "prediction-markets", "trading", "finance"];
@@ -248,13 +355,13 @@ var PolymarketPlugin = class extends BasePlugin {
       allowTrading: {
         type: "boolean",
         default: false,
-        title: "Allow trading (reserved)",
-        description: "Reserved for future CLOB order placement. This build is research-only: public market tools work; signed orders are not wired yet. Leave off."
+        title: "Allow trading",
+        description: "When on, order tools may place and cancel signed CLOB orders (requires wallet private key). Toggle anytime in this form \u2014 no restart required. Leave off for research-only agents."
       },
       privateKey: {
         type: "string",
-        title: "Trading private key (reserved)",
-        description: "Optional Polygon wallet private key reserved for a future signed CLOB client. Not required for research tools.",
+        title: "Trading private key",
+        description: "Polygon wallet private key for CLOB L1 auth. Stored via secret vault when Convex is configured. Not required for public research tools.",
         format: "password"
       },
       funderAddress: {
@@ -407,6 +514,63 @@ var PolymarketPlugin = class extends BasePlugin {
         description: "Report Polymarket plugin configuration and trading readiness.",
         parameters: { type: "object", properties: {} },
         handler: async () => this.getService().getStatus()
+      },
+      {
+        name: "polymarket_place_order",
+        description: "Place a signed Polymarket CLOB limit order. Requires Allow trading + private key. Price is 0\u20131 probability.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenId: { type: "string", description: "CLOB token id" },
+            side: { type: "string", description: "buy | sell" },
+            price: {
+              type: "number",
+              description: "Limit price as probability (0\u20131 exclusive)"
+            },
+            size: { type: "number", description: "Order size in shares" },
+            tickSize: {
+              type: "string",
+              description: "Optional tick size (default fetched from CLOB)"
+            }
+          },
+          required: ["tokenId", "side", "price", "size"]
+        },
+        handler: async (params) => {
+          const tokenId = str(params.tokenId);
+          if (!tokenId) throw new Error("tokenId is required");
+          const sideRaw = str(params.side)?.toLowerCase();
+          if (sideRaw !== "buy" && sideRaw !== "sell") {
+            throw new Error('side must be "buy" or "sell"');
+          }
+          const price = num(params.price);
+          const size = num(params.size);
+          if (price === void 0 || size === void 0) {
+            throw new Error("price and size are required numbers");
+          }
+          return this.getService().placeOrder({
+            tokenId,
+            side: sideRaw,
+            price,
+            size,
+            tickSize: str(params.tickSize)
+          });
+        }
+      },
+      {
+        name: "polymarket_cancel_order",
+        description: "Cancel a Polymarket CLOB order by id. Requires Allow trading + private key.",
+        parameters: {
+          type: "object",
+          properties: {
+            orderId: { type: "string", description: "Order id / hash" }
+          },
+          required: ["orderId"]
+        },
+        handler: async (params) => {
+          const orderId = str(params.orderId);
+          if (!orderId) throw new Error("orderId is required");
+          return this.getService().cancelOrder({ orderId });
+        }
       }
     ];
   }

@@ -35,9 +35,9 @@ function bool(value: unknown, fallback = false): boolean {
 
 export class PolymarketPlugin extends BasePlugin {
   name = "polymarket";
-  version = "0.1.2-beta";
+  version = "0.2.0-beta";
   description =
-    "Polymarket prediction markets: public search, prices, and order books (research-first).";
+    "Polymarket prediction markets: public search/prices/books plus gated CLOB order placement.";
 
   protected displayName = "Polymarket";
   protected category = "markets";
@@ -82,15 +82,15 @@ export class PolymarketPlugin extends BasePlugin {
       allowTrading: {
         type: "boolean",
         default: false,
-        title: "Allow trading (reserved)",
+        title: "Allow trading",
         description:
-          "Reserved for future CLOB order placement. This build is research-only: public market tools work; signed orders are not wired yet. Leave off.",
+          "When on, order tools may place and cancel signed CLOB orders (requires wallet private key). Toggle anytime in this form — no restart required. Leave off for research-only agents.",
       },
       privateKey: {
         type: "string",
-        title: "Trading private key (reserved)",
+        title: "Trading private key",
         description:
-          "Optional Polygon wallet private key reserved for a future signed CLOB client. Not required for research tools.",
+          "Polygon wallet private key for CLOB L1 auth. Stored via secret vault when Convex is configured. Not required for public research tools.",
         format: "password",
       },
       funderAddress: {
@@ -256,6 +256,65 @@ export class PolymarketPlugin extends BasePlugin {
         description: "Report Polymarket plugin configuration and trading readiness.",
         parameters: { type: "object", properties: {} },
         handler: async () => this.getService().getStatus(),
+      },
+      {
+        name: "polymarket_place_order",
+        description:
+          "Place a signed Polymarket CLOB limit order. Requires Allow trading + private key. Price is 0–1 probability.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenId: { type: "string", description: "CLOB token id" },
+            side: { type: "string", description: "buy | sell" },
+            price: {
+              type: "number",
+              description: "Limit price as probability (0–1 exclusive)",
+            },
+            size: { type: "number", description: "Order size in shares" },
+            tickSize: {
+              type: "string",
+              description: "Optional tick size (default fetched from CLOB)",
+            },
+          },
+          required: ["tokenId", "side", "price", "size"],
+        },
+        handler: async (params) => {
+          const tokenId = str(params.tokenId);
+          if (!tokenId) throw new Error("tokenId is required");
+          const sideRaw = str(params.side)?.toLowerCase();
+          if (sideRaw !== "buy" && sideRaw !== "sell") {
+            throw new Error('side must be "buy" or "sell"');
+          }
+          const price = num(params.price);
+          const size = num(params.size);
+          if (price === undefined || size === undefined) {
+            throw new Error("price and size are required numbers");
+          }
+          return this.getService().placeOrder({
+            tokenId,
+            side: sideRaw,
+            price,
+            size,
+            tickSize: str(params.tickSize),
+          });
+        },
+      },
+      {
+        name: "polymarket_cancel_order",
+        description:
+          "Cancel a Polymarket CLOB order by id. Requires Allow trading + private key.",
+        parameters: {
+          type: "object",
+          properties: {
+            orderId: { type: "string", description: "Order id / hash" },
+          },
+          required: ["orderId"],
+        },
+        handler: async (params) => {
+          const orderId = str(params.orderId);
+          if (!orderId) throw new Error("orderId is required");
+          return this.getService().cancelOrder({ orderId });
+        },
       },
     ];
   }
