@@ -1,0 +1,50 @@
+{
+  "name": "@phantasy/plugin-polymarket",
+  "version": "0.1.0-beta",
+  "description": "Polymarket prediction-market integration plugin for Phantasy.",
+  "displayName": "Polymarket",
+  "author": "Phantasy",
+  "homepage": "https://github.com/phantasy-bot/plugin-polymarket",
+  "repository": "https://github.com/phantasy-bot/plugin-polymarket",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "workspace": "business",
+  "extensionKind": "integration",
+  "category": "markets",
+  "tags": ["polymarket", "prediction-markets", "trading", "finance"],
+  "keywords": ["polymarket", "prediction-markets", "trading", "finance"],
+  "permissions": ["internet"],
+  "dependencies": [],
+  "platforms": ["node"],
+  "productionReady": true,
+  "adminSurface": {
+    "tabId": "polymarket",
+    "label": "Polymarket",
+    "workspace": "business",
+    "kind": "generic",
+    "advancedModule": "prediction-markets",
+    "keywords": ["polymarket", "prediction markets", "finance"]
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "enabled": { "type": "boolean", "default": true },
+      "gammaBaseUrl": {
+        "type": "string",
+        "default": "https://gamma-api.polymarket.com"
+      },
+      "clobBaseUrl": {
+        "type": "string",
+        "default": "https://clob.polymarket.com"
+      },
+      "privateKey": { "type": "string" },
+      "funderAddress": { "type": "string" },
+      "chainId": { "type": "number", "default": 137 },
+      "allowTrading": { "type": "boolean", "default": false }
+    }
+  },
+  "phantasy": {
+    "extensions": [{ "path": "./dist/index.js", "kind": "tool" }],
+    "pluginDependencies": []
+  }
+}
