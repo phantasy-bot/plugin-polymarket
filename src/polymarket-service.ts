@@ -216,4 +216,124 @@ export class PolymarketService {
   async cancelOrder(params: CancelOrderParams): Promise<unknown> {
     return cancelClobOrder(this.config, params);
   }
+
+  /**
+   * List live short-horizon crypto up/down events (5m/15m × btc/eth/sol when present).
+   */
+  async listShortCrypto(params: {
+    assets?: Array<"btc" | "eth" | "sol">;
+    intervals?: Array<"5m" | "15m">;
+  } = {}): Promise<
+    Array<{
+      asset: string;
+      interval: string;
+      slug: string;
+      title?: string;
+      endsInSec: number;
+      outcomes?: string[];
+      outcomePrices?: string[];
+      clobTokenIds?: string[];
+      feesEnabled?: boolean;
+      feeSchedule?: unknown;
+    }>
+  > {
+    const assets = params.assets || ["btc", "eth"];
+    const intervals = params.intervals || ["5m", "15m"];
+    const now = Math.floor(Date.now() / 1000);
+    const rows: Array<{
+      asset: string;
+      interval: string;
+      slug: string;
+      title?: string;
+      endsInSec: number;
+      outcomes?: string[];
+      outcomePrices?: string[];
+      clobTokenIds?: string[];
+      feesEnabled?: boolean;
+      feeSchedule?: unknown;
+    }> = [];
+
+    for (const asset of assets) {
+      for (const interval of intervals) {
+        const windowSec = interval === "5m" ? 300 : 900;
+        const bucket = now - (now % windowSec);
+        for (const ts of [bucket, bucket + windowSec, bucket - windowSec]) {
+          const slug = `${asset}-updown-${interval}-${ts}`;
+          try {
+            const list = await this.getJson(
+              `${this.gammaBase}/events?slug=${encodeURIComponent(slug)}`,
+            );
+            const arr = Array.isArray(list) ? list : [];
+            if (!arr[0]) continue;
+            const event = asRecord(arr[0]);
+            const markets = Array.isArray(event.markets) ? event.markets : [];
+            const market = asRecord(markets[0] || {});
+            const end =
+              Date.parse(String(market.endDate || market.eventStartTime || "")) ||
+              (ts + windowSec) * 1000;
+            const start =
+              Date.parse(String(market.eventStartTime || "")) || ts * 1000;
+            rows.push({
+              asset,
+              interval,
+              slug: String(event.slug || slug),
+              title: typeof event.title === "string" ? event.title : undefined,
+              endsInSec: Math.max(0, (start + windowSec * 1000 - Date.now()) / 1000),
+              outcomes: parseMaybeJsonArray(market.outcomes),
+              outcomePrices: parseMaybeJsonArray(market.outcomePrices),
+              clobTokenIds: parseMaybeJsonArray(market.clobTokenIds),
+              feesEnabled:
+                typeof market.feesEnabled === "boolean" ? market.feesEnabled : undefined,
+              feeSchedule: market.feeSchedule,
+            });
+            void end;
+          } catch {
+            // skip
+          }
+        }
+      }
+    }
+    rows.sort((a, b) => a.endsInSec - b.endsInSec);
+    return rows;
+  }
+
+  /**
+   * Polymarket crypto taker fee: fee = shares * feeRate * p * (1-p). Default feeRate 0.07.
+   */
+  estimateTakerFee(params: {
+    price: number;
+    shares?: number;
+    sizeUsd?: number;
+    feeRate?: number;
+  }): {
+    shares: number;
+    price: number;
+    feeUsd: number;
+    notionalUsd: number;
+    allInUsd: number;
+    feeRate: number;
+  } {
+    const feeRate = params.feeRate ?? 0.07;
+    const price = params.price;
+    if (!(price > 0 && price < 1)) {
+      throw new Error("price must be between 0 and 1 exclusive");
+    }
+    const shares =
+      params.shares ??
+      (params.sizeUsd !== undefined ? params.sizeUsd / price : undefined);
+    if (!(shares && shares > 0)) {
+      throw new Error("shares or sizeUsd required");
+    }
+    const raw = shares * feeRate * price * (1 - price);
+    const feeUsd = Math.round(raw * 1e5) / 1e5;
+    const notionalUsd = shares * price;
+    return {
+      shares,
+      price,
+      feeUsd: feeUsd < 0.00001 ? 0 : feeUsd,
+      notionalUsd,
+      allInUsd: notionalUsd + (feeUsd < 0.00001 ? 0 : feeUsd),
+      feeRate,
+    };
+  }
 }

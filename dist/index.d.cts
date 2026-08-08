@@ -158,6 +158,40 @@ declare class PolymarketService {
      * Cancel a resting CLOB order by id. Requires allowTrading + privateKey.
      */
     cancelOrder(params: CancelOrderParams): Promise<unknown>;
+    /**
+     * List live short-horizon crypto up/down events (5m/15m × btc/eth/sol when present).
+     */
+    listShortCrypto(params?: {
+        assets?: Array<"btc" | "eth" | "sol">;
+        intervals?: Array<"5m" | "15m">;
+    }): Promise<Array<{
+        asset: string;
+        interval: string;
+        slug: string;
+        title?: string;
+        endsInSec: number;
+        outcomes?: string[];
+        outcomePrices?: string[];
+        clobTokenIds?: string[];
+        feesEnabled?: boolean;
+        feeSchedule?: unknown;
+    }>>;
+    /**
+     * Polymarket crypto taker fee: fee = shares * feeRate * p * (1-p). Default feeRate 0.07.
+     */
+    estimateTakerFee(params: {
+        price: number;
+        shares?: number;
+        sizeUsd?: number;
+        feeRate?: number;
+    }): {
+        shares: number;
+        price: number;
+        feeUsd: number;
+        notionalUsd: number;
+        allInUsd: number;
+        feeRate: number;
+    };
 }
 
 export { type PolymarketMarketSummary, PolymarketPlugin, type PolymarketSearchParams, PolymarketService, type PolymarketServiceConfig, PolymarketPlugin as default };

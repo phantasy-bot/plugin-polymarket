@@ -258,6 +258,65 @@ export class PolymarketPlugin extends BasePlugin {
         handler: async () => this.getService().getStatus(),
       },
       {
+        name: "polymarket_list_short_crypto",
+        description:
+          "List live short-horizon crypto up/down markets (BTC/ETH/SOL × 5m/15m) with fee flags.",
+        parameters: {
+          type: "object",
+          properties: {
+            assets: {
+              type: "string",
+              description: "Comma list: btc,eth,sol (default btc,eth)",
+            },
+            intervals: {
+              type: "string",
+              description: "Comma list: 5m,15m (default both)",
+            },
+          },
+        },
+        handler: async (params) => {
+          const assetsRaw = str(params.assets);
+          const intervalsRaw = str(params.intervals);
+          const assets = (assetsRaw || "btc,eth")
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((s): s is "btc" | "eth" | "sol" =>
+              s === "btc" || s === "eth" || s === "sol",
+            );
+          const intervals = (intervalsRaw || "5m,15m")
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((s): s is "5m" | "15m" => s === "5m" || s === "15m");
+          const markets = await this.getService().listShortCrypto({ assets, intervals });
+          return { count: markets.length, markets };
+        },
+      },
+      {
+        name: "polymarket_estimate_fee",
+        description:
+          "Estimate crypto taker fee (shares * 0.07 * p * (1-p)). Makers pay 0.",
+        parameters: {
+          type: "object",
+          properties: {
+            price: { type: "number", description: "Share price 0-1" },
+            shares: { type: "number" },
+            sizeUsd: { type: "number", description: "Notional USD alternative to shares" },
+            feeRate: { type: "number", description: "Default 0.07 crypto" },
+          },
+          required: ["price"],
+        },
+        handler: async (params) => {
+          const price = num(params.price);
+          if (price === undefined) throw new Error("price is required");
+          return this.getService().estimateTakerFee({
+            price,
+            shares: num(params.shares),
+            sizeUsd: num(params.sizeUsd),
+            feeRate: num(params.feeRate),
+          });
+        },
+      },
+      {
         name: "polymarket_place_order",
         description:
           "Place a signed Polymarket CLOB limit order. Requires Allow trading + private key. Price is 0–1 probability.",

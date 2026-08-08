@@ -1,6 +1,6 @@
 {
   "name": "@phantasy/plugin-polymarket",
-  "version": "0.2.0-beta",
+  "version": "0.3.0-beta",
   "private": false,
   "description": "Polymarket prediction markets: public research tools and gated CLOB trading.",
   "license": "MIT",

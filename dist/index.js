@@ -287,6 +287,77 @@ var PolymarketService = class {
   async cancelOrder(params) {
     return cancelClobOrder(this.config, params);
   }
+  /**
+   * List live short-horizon crypto up/down events (5m/15m × btc/eth/sol when present).
+   */
+  async listShortCrypto(params = {}) {
+    const assets = params.assets || ["btc", "eth"];
+    const intervals = params.intervals || ["5m", "15m"];
+    const now = Math.floor(Date.now() / 1e3);
+    const rows = [];
+    for (const asset of assets) {
+      for (const interval of intervals) {
+        const windowSec = interval === "5m" ? 300 : 900;
+        const bucket = now - now % windowSec;
+        for (const ts of [bucket, bucket + windowSec, bucket - windowSec]) {
+          const slug = `${asset}-updown-${interval}-${ts}`;
+          try {
+            const list = await this.getJson(
+              `${this.gammaBase}/events?slug=${encodeURIComponent(slug)}`
+            );
+            const arr = Array.isArray(list) ? list : [];
+            if (!arr[0]) continue;
+            const event = asRecord(arr[0]);
+            const markets = Array.isArray(event.markets) ? event.markets : [];
+            const market = asRecord(markets[0] || {});
+            const end = Date.parse(String(market.endDate || market.eventStartTime || "")) || (ts + windowSec) * 1e3;
+            const start = Date.parse(String(market.eventStartTime || "")) || ts * 1e3;
+            rows.push({
+              asset,
+              interval,
+              slug: String(event.slug || slug),
+              title: typeof event.title === "string" ? event.title : void 0,
+              endsInSec: Math.max(0, (start + windowSec * 1e3 - Date.now()) / 1e3),
+              outcomes: parseMaybeJsonArray(market.outcomes),
+              outcomePrices: parseMaybeJsonArray(market.outcomePrices),
+              clobTokenIds: parseMaybeJsonArray(market.clobTokenIds),
+              feesEnabled: typeof market.feesEnabled === "boolean" ? market.feesEnabled : void 0,
+              feeSchedule: market.feeSchedule
+            });
+            void end;
+          } catch {
+          }
+        }
+      }
+    }
+    rows.sort((a, b) => a.endsInSec - b.endsInSec);
+    return rows;
+  }
+  /**
+   * Polymarket crypto taker fee: fee = shares * feeRate * p * (1-p). Default feeRate 0.07.
+   */
+  estimateTakerFee(params) {
+    const feeRate = params.feeRate ?? 0.07;
+    const price = params.price;
+    if (!(price > 0 && price < 1)) {
+      throw new Error("price must be between 0 and 1 exclusive");
+    }
+    const shares = params.shares ?? (params.sizeUsd !== void 0 ? params.sizeUsd / price : void 0);
+    if (!(shares && shares > 0)) {
+      throw new Error("shares or sizeUsd required");
+    }
+    const raw = shares * feeRate * price * (1 - price);
+    const feeUsd = Math.round(raw * 1e5) / 1e5;
+    const notionalUsd = shares * price;
+    return {
+      shares,
+      price,
+      feeUsd: feeUsd < 1e-5 ? 0 : feeUsd,
+      notionalUsd,
+      allInUsd: notionalUsd + (feeUsd < 1e-5 ? 0 : feeUsd),
+      feeRate
+    };
+  }
 };
 
 // src/polymarket-plugin.ts
@@ -514,6 +585,57 @@ var PolymarketPlugin = class extends BasePlugin {
         description: "Report Polymarket plugin configuration and trading readiness.",
         parameters: { type: "object", properties: {} },
         handler: async () => this.getService().getStatus()
+      },
+      {
+        name: "polymarket_list_short_crypto",
+        description: "List live short-horizon crypto up/down markets (BTC/ETH/SOL \xD7 5m/15m) with fee flags.",
+        parameters: {
+          type: "object",
+          properties: {
+            assets: {
+              type: "string",
+              description: "Comma list: btc,eth,sol (default btc,eth)"
+            },
+            intervals: {
+              type: "string",
+              description: "Comma list: 5m,15m (default both)"
+            }
+          }
+        },
+        handler: async (params) => {
+          const assetsRaw = str(params.assets);
+          const intervalsRaw = str(params.intervals);
+          const assets = (assetsRaw || "btc,eth").split(",").map((s) => s.trim().toLowerCase()).filter(
+            (s) => s === "btc" || s === "eth" || s === "sol"
+          );
+          const intervals = (intervalsRaw || "5m,15m").split(",").map((s) => s.trim().toLowerCase()).filter((s) => s === "5m" || s === "15m");
+          const markets = await this.getService().listShortCrypto({ assets, intervals });
+          return { count: markets.length, markets };
+        }
+      },
+      {
+        name: "polymarket_estimate_fee",
+        description: "Estimate crypto taker fee (shares * 0.07 * p * (1-p)). Makers pay 0.",
+        parameters: {
+          type: "object",
+          properties: {
+            price: { type: "number", description: "Share price 0-1" },
+            shares: { type: "number" },
+            sizeUsd: { type: "number", description: "Notional USD alternative to shares" },
+            feeRate: { type: "number", description: "Default 0.07 crypto" }
+          },
+          required: ["price"]
+        },
+        handler: async (params) => {
+          const price = num(params.price);
+          if (price === void 0) throw new Error("price is required");
+          return this.getService().estimateTakerFee({
+            price,
+            shares: num(params.shares),
+            sizeUsd: num(params.sizeUsd),
+            feeRate: num(params.feeRate)
+          });
+        }
       },
       {
         name: "polymarket_place_order",
